@@ -8,11 +8,15 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { isValidEmail } from '@/lib/utils';
 import toast from 'react-hot-toast';
+import { authService } from '@/services/auth';
+import { LoginDTO } from '@/types/auth';
 
 const LoginPage = () => {
   const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [formData, setFormData] = useState<LoginDTO>({
+    email: '',
+    password: ''
+  });
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -21,15 +25,15 @@ const LoginPage = () => {
     const newErrors: { email?: string; password?: string } = {};
     let isValid = true;
 
-    if (!email) {
+    if (!formData.email) {
       newErrors.email = 'Email tidak boleh kosong';
       isValid = false;
-    } else if (!isValidEmail(email)) {
+    } else if (!isValidEmail(formData.email)) {
       newErrors.email = 'Email tidak valid';
       isValid = false;
     }
 
-    if (!password) {
+    if (!formData.password) {
       newErrors.password = 'Password tidak boleh kosong';
       isValid = false;
     }
@@ -47,18 +51,31 @@ const LoginPage = () => {
 
     setIsLoading(true);
 
-    // Simulate API call delay
-    setTimeout(() => {
-      // In a real app, this would be an API call to authenticate
-      // For now, let's just do a simple simulation
-      if (email === 'user@example.com' && password === 'password') {
-        toast.success('Login berhasil!');
-        router.push('/');
+    try {
+      const response = await authService.login(formData);
+      authService.setToken(response.token);
+      
+      toast.success('Login berhasil!');
+      
+      // Redirect berdasarkan role
+      if (authService.hasRole(response.user, 'Stand')) {
+        router.push('/stand/dashboard');
       } else {
-        toast.error('Email atau password salah');
+        router.push('/');
       }
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Email atau password salah');
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   return (
@@ -110,9 +127,10 @@ const LoginPage = () => {
               </div>
               <Input
                 type="email"
+                name="email"
                 placeholder="Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={formData.email}
+                onChange={handleChange}
                 error={errors.email}
                 className="pl-10"
               />
@@ -124,9 +142,10 @@ const LoginPage = () => {
               </div>
               <Input
                 type={showPassword ? 'text' : 'password'}
+                name="password"
                 placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                value={formData.password}
+                onChange={handleChange}
                 error={errors.password}
                 className="pl-10 pr-10"
               />

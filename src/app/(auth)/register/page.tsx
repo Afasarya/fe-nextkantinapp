@@ -3,20 +3,28 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { FaUser, FaEnvelope, FaLock, FaEye, FaEyeSlash, FaPhone } from 'react-icons/fa';
+import { FaUser, FaEnvelope, FaLock, FaEye, FaEyeSlash, FaPhone, FaStore } from 'react-icons/fa';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { isValidEmail } from '@/lib/utils';
 import toast from 'react-hot-toast';
+import { authService } from '@/services/auth';
+import { RegisterStudentDTO, RegisterStandDTO } from '@/types/auth';
 
 const RegisterPage = () => {
   const router = useRouter();
-  const [formData, setFormData] = useState({
+  const [registerType, setRegisterType] = useState<'student' | 'stand'>('student');
+  const [formData, setFormData] = useState<RegisterStudentDTO | RegisterStandDTO>({
     name: '',
     email: '',
     phone: '',
     password: '',
-    confirmPassword: '',
+    password_confirmation: '',
+    ...(registerType === 'stand' && {
+      stand_name: '',
+      stand_slug: '',
+      stand_description: ''
+    })
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -24,12 +32,18 @@ const RegisterPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData((prevData) => ({
-      ...prevData,
-      [name]: value,
-    }));
+    setFormData(prev => {
+      if (name === 'stand_name') {
+        return {
+          ...prev,
+          stand_name: value,
+          stand_slug: value.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+        } as RegisterStandDTO;
+      }
+      return { ...prev, [name]: value };
+    });
   };
 
   const validateForm = () => {
@@ -65,9 +79,17 @@ const RegisterPage = () => {
       isValid = false;
     }
 
-    if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Password tidak cocok';
+    if (formData.password !== formData.password_confirmation) {
+      newErrors.password_confirmation = 'Password tidak cocok';
       isValid = false;
+    }
+
+    if (registerType === 'stand') {
+      const standData = formData as RegisterStandDTO;
+      if (!standData.stand_name) {
+        newErrors.stand_name = 'Nama stand tidak boleh kosong';
+        isValid = false;
+      }
     }
 
     if (!agreeToTerms) {
@@ -88,14 +110,25 @@ const RegisterPage = () => {
 
     setIsLoading(true);
 
-    // Simulate API call delay
-    setTimeout(() => {
-      // In a real app, this would be an API call to register
-      // For now, let's just simulate success
-      toast.success('Pendaftaran berhasil! Silakan masuk dengan akun baru Anda.');
-      router.push('/login');
+    try {
+      const response = registerType === 'stand' 
+        ? await authService.registerStand(formData as RegisterStandDTO)
+        : await authService.registerStudent(formData as RegisterStudentDTO);
+
+      authService.setToken(response.token);
+      toast.success('Pendaftaran berhasil!');
+      
+      // Redirect berdasarkan tipe registrasi
+      if (registerType === 'stand') {
+        router.push('/stand/dashboard');
+      } else {
+        router.push('/');
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Gagal melakukan pendaftaran');
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   return (
@@ -140,150 +173,208 @@ const RegisterPage = () => {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FaUser className="text-secondary-500" />
-              </div>
-              <Input
-                type="text"
-                name="name"
-                placeholder="Nama Lengkap"
-                value={formData.name}
-                onChange={handleChange}
-                error={errors.name}
-                className="pl-10"
-              />
-            </div>
-
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FaEnvelope className="text-secondary-500" />
-              </div>
-              <Input
-                type="email"
-                name="email"
-                placeholder="Email"
-                value={formData.email}
-                onChange={handleChange}
-                error={errors.email}
-                className="pl-10"
-              />
-            </div>
-
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FaPhone className="text-secondary-500" />
-              </div>
-              <Input
-                type="tel"
-                name="phone"
-                placeholder="Nomor Telepon"
-                value={formData.phone}
-                onChange={handleChange}
-                error={errors.phone}
-                className="pl-10"
-              />
-            </div>
-
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FaLock className="text-secondary-500" />
-              </div>
-              <Input
-                type={showPassword ? 'text' : 'password'}
-                name="password"
-                placeholder="Password"
-                value={formData.password}
-                onChange={handleChange}
-                error={errors.password}
-                className="pl-10 pr-10"
-              />
-              <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="text-secondary-500 hover:text-secondary-700 focus:outline-none"
-                >
-                  {showPassword ? <FaEyeSlash /> : <FaEye />}
-                </button>
-              </div>
-            </div>
-
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FaLock className="text-secondary-500" />
-              </div>
-              <Input
-                type={showConfirmPassword ? 'text' : 'password'}
-                name="confirmPassword"
-                placeholder="Konfirmasi Password"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                error={errors.confirmPassword}
-                className="pl-10 pr-10"
-              />
-              <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="text-secondary-500 hover:text-secondary-700 focus:outline-none"
-                >
-                  {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <div className="flex items-start">
-                <div className="flex items-center h-5">
-                  <input
-                    id="terms"
-                    name="terms"
-                    type="checkbox"
-                    checked={agreeToTerms}
-                    onChange={(e) => setAgreeToTerms(e.target.checked)}
-                    className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-secondary-300 rounded"
-                  />
-                </div>
-                <div className="ml-3 text-sm">
-                  <label htmlFor="terms" className="text-secondary-700">
-                    Saya menyetujui{' '}
-                    <a href="#" className="text-primary-600 hover:text-primary-500">
-                      Syarat dan Ketentuan
-                    </a>{' '}
-                    serta{' '}
-                    <a href="#" className="text-primary-600 hover:text-primary-500">
-                      Kebijakan Privasi
-                    </a>
-                  </label>
-                  {errors.terms && (
-                    <p className="mt-1 text-sm text-red-600">{errors.terms}</p>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <Button
-              type="submit"
-              variant="primary"
-              fullWidth
-              isLoading={isLoading}
-            >
-              Daftar
-            </Button>
-          </form>
-
-          <div className="mt-6 text-center">
-            <p className="text-sm text-secondary-600">
-              Sudah punya akun?{' '}
-              <Link
-                href="/login"
-                className="font-medium text-primary-600 hover:text-primary-500"
+          <div className="mb-6">
+            <div className="flex gap-4 mb-6">
+              <button
+                type="button"
+                onClick={() => setRegisterType('student')}
+                className={`flex-1 py-2 px-4 rounded-md ${
+                  registerType === 'student'
+                    ? 'bg-primary-600 text-white'
+                    : 'bg-white text-secondary-700 border border-secondary-300'
+                }`}
               >
-                Masuk di sini
-              </Link>
-            </p>
+                <FaUser className="inline mr-2" /> Daftar sebagai Mahasiswa
+              </button>
+              <button
+                type="button"
+                onClick={() => setRegisterType('stand')}
+                className={`flex-1 py-2 px-4 rounded-md ${
+                  registerType === 'stand'
+                    ? 'bg-primary-600 text-white'
+                    : 'bg-white text-secondary-700 border border-secondary-300'
+                }`}
+              >
+                <FaStore className="inline mr-2" /> Daftar sebagai Pemilik Stand
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <FaUser className="text-secondary-500" />
+                </div>
+                <Input
+                  type="text"
+                  name="name"
+                  placeholder="Nama Lengkap"
+                  value={formData.name}
+                  onChange={handleChange}
+                  error={errors.name}
+                  className="pl-10"
+                />
+              </div>
+
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <FaEnvelope className="text-secondary-500" />
+                </div>
+                <Input
+                  type="email"
+                  name="email"
+                  placeholder="Email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  error={errors.email}
+                  className="pl-10"
+                />
+              </div>
+
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <FaPhone className="text-secondary-500" />
+                </div>
+                <Input
+                  type="tel"
+                  name="phone"
+                  placeholder="Nomor Telepon"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  error={errors.phone}
+                  className="pl-10"
+                />
+              </div>
+
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <FaLock className="text-secondary-500" />
+                </div>
+                <Input
+                  type={showPassword ? 'text' : 'password'}
+                  name="password"
+                  placeholder="Password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  error={errors.password}
+                  className="pl-10 pr-10"
+                />
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="text-secondary-500 hover:text-secondary-700 focus:outline-none"
+                  >
+                    {showPassword ? <FaEyeSlash /> : <FaEye />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <FaLock className="text-secondary-500" />
+                </div>
+                <Input
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  name="password_confirmation"
+                  placeholder="Konfirmasi Password"
+                  value={formData.password_confirmation}
+                  onChange={handleChange}
+                  error={errors.password_confirmation}
+                  className="pl-10 pr-10"
+                />
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="text-secondary-500 hover:text-secondary-700 focus:outline-none"
+                  >
+                    {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Tambahan fields untuk stand */}
+              {registerType === 'stand' && (
+                <>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <FaStore className="text-secondary-500" />
+                    </div>
+                    <Input
+                      type="text"
+                      name="stand_name"
+                      placeholder="Nama Stand"
+                      value={(formData as RegisterStandDTO).stand_name || ''}
+                      onChange={handleChange}
+                      error={errors.stand_name}
+                      className="pl-10"
+                    />
+                  </div>
+
+                  <div className="relative">
+                    <Input
+                      type="text"
+                      name="stand_description"
+                      placeholder="Deskripsi Stand"
+                      value={(formData as RegisterStandDTO).stand_description || ''}
+                      onChange={handleChange}
+                      error={errors.stand_description}
+                    />
+                  </div>
+                </>
+              )}
+
+              <div>
+                <div className="flex items-start">
+                  <div className="flex items-center h-5">
+                    <input
+                      id="terms"
+                      name="terms"
+                      type="checkbox"
+                      checked={agreeToTerms}
+                      onChange={(e) => setAgreeToTerms(e.target.checked)}
+                      className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-secondary-300 rounded"
+                    />
+                  </div>
+                  <div className="ml-3 text-sm">
+                    <label htmlFor="terms" className="text-secondary-700">
+                      Saya menyetujui{' '}
+                      <a href="#" className="text-primary-600 hover:text-primary-500">
+                        Syarat dan Ketentuan
+                      </a>{' '}
+                      serta{' '}
+                      <a href="#" className="text-primary-600 hover:text-primary-500">
+                        Kebijakan Privasi
+                      </a>
+                    </label>
+                    {errors.terms && (
+                      <p className="mt-1 text-sm text-red-600">{errors.terms}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <Button
+                type="submit"
+                variant="primary"
+                fullWidth
+                isLoading={isLoading}
+              >
+                Daftar
+              </Button>
+            </form>
+
+            <div className="mt-6 text-center">
+              <p className="text-sm text-secondary-600">
+                Sudah punya akun?{' '}
+                <Link
+                  href="/login"
+                  className="font-medium text-primary-600 hover:text-primary-500"
+                >
+                  Masuk di sini
+                </Link>
+              </p>
+            </div>
           </div>
         </div>
       </div>

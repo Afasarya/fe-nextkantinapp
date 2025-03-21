@@ -31,37 +31,42 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile = false, onClose }) => {
     {
       name: 'Dashboard',
       icon: <FaTachometerAlt />,
-      href: '/admin/dashboard',
+      href: '/dashboard',
     },
     {
       name: 'Produk',
       icon: <FaUtensils />,
-      href: '/admin/products',
+      href: '/products',
     },
     {
       name: 'Pelanggan',
       icon: <FaUsers />,
-      href: '/admin/customers',
+      href: '/customers',
     },
     {
       name: 'Pesanan',
       icon: <FaShoppingBag />,
-      href: '/admin/orders',
+      href: '/orders',
     },
     {
       name: 'Diskon',
       icon: <FaPercent />,
-      href: '/admin/discounts',
+      href: '/discounts',
     },
     {
       name: 'Laporan',
       icon: <FaChartBar />,
-      href: '/admin/reports',
+      href: '/reports',
+    },
+    {
+      name: 'Stand',
+      icon: <FaChartBar />,
+      href: '/stand',
     },
     {
       name: 'Pengaturan',
       icon: <FaCog />,
-      href: '/admin/settings',
+      href: '/settings',
     },
   ];
 
