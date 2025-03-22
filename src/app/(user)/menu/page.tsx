@@ -1,98 +1,16 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FaSearch, FaFilter } from 'react-icons/fa';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import FoodCard from '@/components/user/FoodCard';
 import Button from '@/components/ui/Button';
 import toast from 'react-hot-toast';
-
-// Sample food data
-const foodData = [
-  {
-    id: '1',
-    name: 'Nasi Goreng Spesial',
-    price: 15000,
-    originalPrice: 18000,
-    category: 'Makanan Utama',
-    rating: 4.8,
-    imageUrl: '/images/food-items/item1.jpg',
-    tags: ['Pedas', 'Populer'],
-    description: 'Nasi goreng dengan telur, ayam, dan sayuran segar',
-  },
-  {
-    id: '2',
-    name: 'Mie Ayam Bakso',
-    price: 12000,
-    category: 'Makanan Utama',
-    rating: 4.5,
-    imageUrl: '/images/food-items/item2.jpg',
-    tags: ['Populer'],
-    description: 'Mie ayam dengan tambahan bakso sapi yang lezat',
-  },
-  {
-    id: '3',
-    name: 'Es Teh Manis',
-    price: 5000,
-    category: 'Minuman',
-    rating: 4.3,
-    imageUrl: '/images/food-items/item3.jpg',
-    tags: ['Dingin'],
-    description: 'Teh manis segar dengan es batu',
-  },
-  {
-    id: '4',
-    name: 'Ayam Penyet',
-    price: 18000,
-    category: 'Makanan Utama',
-    rating: 4.7,
-    imageUrl: '/images/food-items/item4.jpg',
-    tags: ['Pedas', 'Populer'],
-    description: 'Ayam goreng yang di-penyet dengan sambal terasi pedas',
-  },
-  {
-    id: '5',
-    name: 'Soto Ayam',
-    price: 13000,
-    category: 'Makanan Utama',
-    rating: 4.6,
-    imageUrl: '/images/food-items/item5.jpg',
-    tags: ['Kuah'],
-    description: 'Soto ayam dengan kuah bening dan tambahan soun',
-  },
-  {
-    id: '6',
-    name: 'Es Jeruk',
-    price: 6000,
-    category: 'Minuman',
-    rating: 4.4,
-    imageUrl: '/images/food-items/item6.jpg',
-    tags: ['Dingin'],
-    description: 'Jeruk segar dengan es batu dan sedikit gula',
-  },
-  {
-    id: '7',
-    name: 'Gado-gado',
-    price: 10000,
-    category: 'Makanan Utama',
-    rating: 4.2,
-    imageUrl: '/images/food-items/item7.jpg',
-    tags: ['Vegetarian'],
-    description: 'Sayuran segar dengan bumbu kacang yang lezat',
-  },
-  {
-    id: '8',
-    name: 'Bakso Sapi',
-    price: 14000,
-    originalPrice: 16000,
-    category: 'Makanan Utama',
-    rating: 4.7,
-    imageUrl: '/images/food-items/item8.jpg',
-    tags: ['Kuah', 'Populer'],
-    description: 'Bakso daging sapi dengan kuah kaldu gurih',
-  },
-];
+import { foodService } from '@/services/food';
+import { cartService } from '@/services/cart';
+import { Food } from '@/types/food';
+import { authService } from '@/services/auth';
 
 // Categories
 const categories = [
@@ -108,19 +26,52 @@ const categories = [
 const tags = ['Populer', 'Pedas', 'Vegetarian', 'Kuah', 'Dingin'];
 
 const MenuPage = () => {
+  const [foods, setFoods] = useState<Food[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Semua');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [sortOption, setSortOption] = useState('popularity');
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
 
-  // Filter foods based on search query, category, and tags
-  const filteredFoods = foodData.filter((food) => {
+  useEffect(() => {
+    fetchFoods();
+  }, []);
+
+  const fetchFoods = async () => {
+    try {
+      const data = await foodService.getAll();
+      setFoods(data);
+    } catch (error) {
+      toast.error('Gagal memuat data menu');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAddToCart = async (id: number) => {
+    if (!authService.isAuthenticated()) {
+      toast.error('Silakan login terlebih dahulu');
+      return;
+    }
+
+    try {
+      await cartService.create({
+        food_id: id,
+        quantity: 1
+      });
+      toast.success('Berhasil menambahkan ke keranjang');
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Gagal menambahkan ke keranjang';
+      toast.error(message);
+    }
+  };
+
+  // Filter foods based on search query and category
+  const filteredFoods = foods.filter((food) => {
     const matchesSearch = food.name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = selectedCategory === 'Semua' || food.category === selectedCategory;
-    const matchesTags = selectedTags.length === 0 || selectedTags.some(tag => food.tags.includes(tag));
-    
-    return matchesSearch && matchesCategory && matchesTags;
+    return matchesSearch && matchesCategory;
   });
 
   // Sort foods based on selected sort option
@@ -130,22 +81,12 @@ const MenuPage = () => {
         return a.price - b.price;
       case 'price-high':
         return b.price - a.price;
-      case 'rating':
-        return b.rating - a.rating;
-      case 'popularity':
+      case 'newest':
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       default:
-        return b.rating - a.rating; // Default sort by rating as a proxy for popularity
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     }
   });
-
-  const handleAddToCart = (id: string) => {
-    // In a real app, this would add the item to the cart
-    // For now, we'll just show a toast message
-    const foodItem = foodData.find(food => food.id === id);
-    if (foodItem) {
-      toast.success(`${foodItem.name} ditambahkan ke keranjang`);
-    }
-  };
 
   const toggleTag = (tag: string) => {
     if (selectedTags.includes(tag)) {
@@ -154,6 +95,20 @@ const MenuPage = () => {
       setSelectedTags([...selectedTags, tag]);
     }
   };
+
+  if (isLoading) {
+    return (
+      <main className="min-h-screen">
+        <Header />
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-12">
+          <div className="flex justify-center items-center min-h-[400px]">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
+          </div>
+        </div>
+        <Footer />
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen">
@@ -320,11 +275,11 @@ const MenuPage = () => {
                       id={food.id}
                       name={food.name}
                       price={food.price}
-                      originalPrice={food.originalPrice}
-                      category={food.category}
-                      rating={food.rating}
-                      imageUrl={food.imageUrl}
-                      onAddToCart={handleAddToCart}
+                      originalPrice={food.is_discount ? food.price : undefined}
+                      discountPrice={food.is_discount ? food.discount_price : undefined}
+                      imageUrl={food.image}
+                      description={food.description}
+                      onAddToCart={() => handleAddToCart(food.id)}
                     />
                   ))}
                 </div>

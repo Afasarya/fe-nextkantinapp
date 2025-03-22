@@ -17,7 +17,6 @@ const RegisterPage = () => {
   const [formData, setFormData] = useState<RegisterStudentDTO | RegisterStandDTO>({
     name: '',
     email: '',
-    phone: '',
     password: '',
     password_confirmation: '',
     ...(registerType === 'stand' && {
@@ -60,14 +59,6 @@ const RegisterPage = () => {
       isValid = false;
     } else if (!isValidEmail(formData.email)) {
       newErrors.email = 'Email tidak valid';
-      isValid = false;
-    }
-
-    if (!formData.phone.trim()) {
-      newErrors.phone = 'Nomor telepon tidak boleh kosong';
-      isValid = false;
-    } else if (!/^[0-9]{10,13}$/.test(formData.phone.trim())) {
-      newErrors.phone = 'Nomor telepon tidak valid';
       isValid = false;
     }
 
@@ -232,21 +223,6 @@ const RegisterPage = () => {
 
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FaPhone className="text-secondary-500" />
-                </div>
-                <Input
-                  type="tel"
-                  name="phone"
-                  placeholder="Nomor Telepon"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  error={errors.phone}
-                  className="pl-10"
-                />
-              </div>
-
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <FaLock className="text-secondary-500" />
                 </div>
                 <Input
@@ -293,7 +269,7 @@ const RegisterPage = () => {
                 </div>
               </div>
 
-              {/* Tambahan fields untuk stand */}
+              {/* Fields untuk stand */}
               {registerType === 'stand' && (
                 <>
                   <div className="relative">

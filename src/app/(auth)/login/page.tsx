@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { FaEnvelope, FaLock, FaEye, FaEyeSlash } from 'react-icons/fa';
@@ -20,6 +20,12 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (authService.isAuthenticated()) {
+      router.push('/');
+    }
+  }, []);
 
   const validateForm = () => {
     const newErrors: { email?: string; password?: string } = {};
@@ -53,18 +59,30 @@ const LoginPage = () => {
 
     try {
       const response = await authService.login(formData);
-      authService.setToken(response.token);
-      
-      toast.success('Login berhasil!');
-      
-      // Redirect berdasarkan role
-      if (authService.hasRole(response.user, 'Stand')) {
-        router.push('/stand/dashboard');
+      console.log('Login Response:', response); // Debugging
+
+      if (response && response.token && response.user) {
+        authService.setToken(response.token);
+        toast.success('Login berhasil!');
+
+        setTimeout(() => {
+          if (authService.hasRole(response.user, 'Stand')) {
+            router.push('/stand/dashboard');
+          } else {
+            router.push('/');
+          }
+        }, 1000);
       } else {
-        router.push('/');
+        toast.error('Data login tidak lengkap, silakan coba lagi.');
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Email atau password salah');
+      const errorMessage = error.response?.data?.message || 'Email atau password salah';
+      toast.error(errorMessage);
+
+      setFormData(prev => ({
+        ...prev,
+        password: ''
+      }));
     } finally {
       setIsLoading(false);
     }
@@ -80,39 +98,21 @@ const LoginPage = () => {
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row">
-      {/* Left side (Image) - Hidden on mobile */}
       <div className="hidden md:flex md:w-1/2 bg-primary-600 relative">
         <div className="absolute inset-0 flex items-center justify-center p-10">
           <div className="max-w-lg">
-            <div className="flex items-center mb-8">
-              <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-primary-600 font-bold text-2xl mr-3">
-                K
-              </div>
-              <span className="text-3xl font-bold text-white">Kantin<span className="text-primary-200">Ku</span></span>
-            </div>
             <h1 className="text-4xl font-bold text-white mb-6">
               Pesan makanan dan minuman dengan mudah
             </h1>
             <p className="text-white/90 text-lg">
-              Nikmati kemudahan memesan makanan dan minuman di kantin sekolah tanpa perlu mengantri. Cukup pesan lewat aplikasi dan ambil pesananmu saat sudah siap!
+              Nikmati kemudahan memesan makanan dan minuman di kantin sekolah tanpa perlu mengantri.
             </p>
           </div>
         </div>
       </div>
 
-      {/* Right side (Login Form) */}
       <div className="flex flex-1 md:w-1/2 items-center justify-center p-8">
         <div className="w-full max-w-md">
-          {/* Logo for mobile view */}
-          <div className="md:hidden flex justify-center mb-8">
-            <div className="flex items-center">
-              <div className="w-10 h-10 rounded-full bg-primary-600 flex items-center justify-center text-white font-bold text-xl mr-2">
-                K
-              </div>
-              <span className="text-2xl font-bold text-primary-600">Kantin<span className="text-secondary-800">Ku</span></span>
-            </div>
-          </div>
-
           <div className="text-center mb-8">
             <h1 className="text-2xl font-bold text-secondary-900">Selamat Datang Kembali</h1>
             <p className="text-secondary-600 mt-2">
@@ -160,26 +160,6 @@ const LoginPage = () => {
               </div>
             </div>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <input
-                  id="remember"
-                  name="remember"
-                  type="checkbox"
-                  className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-secondary-300 rounded"
-                />
-                <label htmlFor="remember" className="ml-2 block text-sm text-secondary-700">
-                  Ingat saya
-                </label>
-              </div>
-              <a
-                href="#"
-                className="text-sm font-medium text-primary-600 hover:text-primary-500"
-              >
-                Lupa password?
-              </a>
-            </div>
-
             <Button
               type="submit"
               variant="primary"
@@ -193,27 +173,10 @@ const LoginPage = () => {
           <div className="mt-6 text-center">
             <p className="text-sm text-secondary-600">
               Belum punya akun?{' '}
-              <Link
-                href="/register"
-                className="font-medium text-primary-600 hover:text-primary-500"
-              >
+              <Link href="/register" className="font-medium text-primary-600 hover:text-primary-500">
                 Daftar sekarang
               </Link>
             </p>
-          </div>
-
-          <div className="mt-8 border-t border-secondary-200 pt-6">
-            <p className="text-sm text-center text-secondary-600 mb-4">
-              Atau masuk dengan
-            </p>
-            <div className="flex gap-3">
-              <button className="flex-1 flex items-center justify-center py-2 px-4 border border-secondary-300 rounded-md shadow-sm text-sm font-medium text-secondary-700 bg-white hover:bg-secondary-50">
-                Google
-              </button>
-              <button className="flex-1 flex items-center justify-center py-2 px-4 border border-secondary-300 rounded-md shadow-sm text-sm font-medium text-secondary-700 bg-white hover:bg-secondary-50">
-                Facebook
-              </button>
-            </div>
           </div>
         </div>
       </div>

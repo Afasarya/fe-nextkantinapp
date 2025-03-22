@@ -3,26 +3,26 @@ import { AuthResponse, LoginDTO, RegisterStudentDTO, RegisterStandDTO, User } fr
 
 export const authService = {
     login: async (data: LoginDTO): Promise<AuthResponse> => {
-        const response = await api.post('/api/auth/login', data);
+        const response = await api.post('/api/login', data);
         return response.data.data;
     },
 
     registerStudent: async (data: RegisterStudentDTO): Promise<AuthResponse> => {
-        const response = await api.post('/api/auth/register', data);
+        const response = await api.post('/api/register', data);
         return response.data.data;
     },
 
     registerStand: async (data: RegisterStandDTO): Promise<AuthResponse> => {
-        const response = await api.post('/api/auth/register', data);
+        const response = await api.post('/api/register', data);
         return response.data.data;
     },
 
     logout: async (): Promise<void> => {
-        await api.post('/api/auth/logout');
+        await api.post('/api/logout');
     },
 
     me: async (): Promise<User> => {
-        const response = await api.get('/api/auth/me');
+        const response = await api.get('/api/me');
         return response.data.data;
     },
 

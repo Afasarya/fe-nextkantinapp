@@ -1,17 +1,50 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { FaShoppingCart, FaUser, FaBars, FaTimes } from 'react-icons/fa';
+import { usePathname, useRouter } from 'next/navigation';
+import { FaShoppingCart, FaUser, FaBars, FaTimes, FaSignOutAlt } from 'react-icons/fa';
 import Button from '@/components/ui/Button';
+import { authService } from '@/services/auth';
+import { User } from '@/types/auth';
+import toast from 'react-hot-toast';
 
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
   const pathname = usePathname();
+  const router = useRouter();
   
   const isAdmin = pathname?.includes('/admin');
   const isAuth = pathname?.includes('/login') || pathname?.includes('/register');
+
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  const checkAuth = async () => {
+    if (authService.isAuthenticated()) {
+      try {
+        const userData = await authService.me();
+        setUser(userData);
+      } catch (error) {
+        authService.removeToken();
+        setUser(null);
+      }
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await authService.logout();
+      authService.removeToken();
+      setUser(null);
+      toast.success('Berhasil keluar');
+      router.push('/login');
+    } catch (error) {
+      toast.error('Gagal keluar');
+    }
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -34,6 +67,75 @@ const Header: React.FC = () => {
 
   // Don't render header on auth pages
   if (isAuth) return null;
+
+  const renderAuthButtons = () => {
+    if (user) {
+      return (
+        <div className="flex items-center space-x-3">
+          {!isAdmin && (
+            <Link href="/cart" className="p-2 rounded-full bg-primary-50 text-primary-600 hover:bg-primary-100 transition-colors relative">
+              <FaShoppingCart size={20} />
+              <span className="absolute -top-1 -right-1 bg-primary-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
+                3
+              </span>
+            </Link>
+          )}
+          <Link href="/profile" className="p-2 rounded-full bg-primary-50 text-primary-600 hover:bg-primary-100 transition-colors">
+            <FaUser size={20} />
+          </Link>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={handleLogout}
+            className="flex items-center gap-2"
+          >
+            <FaSignOutAlt /> Keluar
+          </Button>
+        </div>
+      );
+    }
+
+    return (
+      <Link href="/login">
+        <Button size="sm" variant="primary">Masuk</Button>
+      </Link>
+    );
+  };
+
+  // Update mobile menu juga untuk menampilkan tombol logout ketika sudah login
+  const renderMobileAuthButtons = () => {
+    if (user) {
+      return (
+        <div className="flex items-center space-x-3 py-2">
+          {!isAdmin && (
+            <Link href="/cart" className="p-2 rounded-full bg-primary-50 text-primary-600 relative">
+              <FaShoppingCart size={20} />
+              <span className="absolute -top-1 -right-1 bg-primary-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
+                3
+              </span>
+            </Link>
+          )}
+          <Link href="/profile" className="p-2 rounded-full bg-primary-50 text-primary-600">
+            <FaUser size={20} />
+          </Link>
+          <Button
+            fullWidth
+            variant="secondary"
+            onClick={handleLogout}
+            className="flex items-center justify-center gap-2"
+          >
+            <FaSignOutAlt /> Keluar
+          </Button>
+        </div>
+      );
+    }
+
+    return (
+      <Link href="/login" className="flex-1">
+        <Button fullWidth>Masuk</Button>
+      </Link>
+    );
+  };
 
   return (
     <header
@@ -78,26 +180,7 @@ const Header: React.FC = () => {
 
         {/* Action Buttons */}
         <div className="hidden md:flex items-center space-x-3">
-          {!isAdmin ? (
-            <>
-              <Link href="/cart" className="p-2 rounded-full bg-primary-50 text-primary-600 hover:bg-primary-100 transition-colors relative">
-                <FaShoppingCart size={20} />
-                <span className="absolute -top-1 -right-1 bg-primary-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
-                  3
-                </span>
-              </Link>
-              <Link href="/profile" className="p-2 rounded-full bg-primary-50 text-primary-600 hover:bg-primary-100 transition-colors">
-                <FaUser size={20} />
-              </Link>
-              <Link href="/login">
-                <Button size="sm" variant="primary">Masuk</Button>
-              </Link>
-            </>
-          ) : (
-            <Link href="/profile" className="p-2 rounded-full bg-primary-50 text-primary-600 hover:bg-primary-100 transition-colors">
-              <FaUser size={20} />
-            </Link>
-          )}
+          {renderAuthButtons()}
         </div>
 
         {/* Mobile Menu Button */}
@@ -125,20 +208,7 @@ const Header: React.FC = () => {
                   <Link href="/contact" className={`px-3 py-2 rounded-md font-medium ${pathname === '/contact' ? 'text-primary-600' : 'text-secondary-700'}`}>
                     Kontak
                   </Link>
-                  <div className="flex items-center space-x-3 py-2">
-                    <Link href="/cart" className="p-2 rounded-full bg-primary-50 text-primary-600 relative">
-                      <FaShoppingCart size={20} />
-                      <span className="absolute -top-1 -right-1 bg-primary-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
-                        3
-                      </span>
-                    </Link>
-                    <Link href="/profile" className="p-2 rounded-full bg-primary-50 text-primary-600">
-                      <FaUser size={20} />
-                    </Link>
-                    <Link href="/login" className="flex-1">
-                      <Button fullWidth>Masuk</Button>
-                    </Link>
-                  </div>
+                  {renderMobileAuthButtons()}
                 </>
               ) : (
                 <>
