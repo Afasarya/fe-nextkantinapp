@@ -1,16 +1,18 @@
 import axios from 'axios';
+import { authService } from './auth';
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000',
   headers: {
     'Content-Type': 'application/json',
+    'Accept': 'application/json'
   }
 });
 
-
+// Request interceptor untuk menambahkan token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    const token = authService.getToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -26,14 +28,29 @@ api.interceptors.request.use(
   }
 );
 
+// Response interceptor untuk menangani error
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token');
+  async (error) => {
+    const originalRequest = error.config;
+
+    // Jika error 401 (Unauthorized)
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      
+      // Hapus token dan redirect ke login
+      authService.removeToken();
       localStorage.removeItem('user');
       window.location.href = '/login';
+      return Promise.reject(error);
     }
+
+    // Jika error 500, tampilkan pesan error dari server
+    if (error.response?.status === 500) {
+      const errorMessage = error.response?.data?.message || 'Terjadi kesalahan server';
+      return Promise.reject(new Error(errorMessage));
+    }
+
     return Promise.reject(error);
   }
 );

@@ -1,11 +1,13 @@
 "use client";
+
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { User } from '@/types/auth';
+import { authService } from '@/services/auth';
 
 interface AuthContextType {
   user: User | null;
-  login: (token: string, userData: User) => void;
+  login: (token: string, userData: User) => Promise<boolean>;
   logout: () => void;
   isLoading: boolean;
 }
@@ -18,19 +20,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const userData = localStorage.getItem('user');
-    
-    if (token && userData) {
-      setUser(JSON.parse(userData) as User);
-    }
-    
-    setIsLoading(false);
+    checkAuth();
   }, []);
+
+  const checkAuth = async () => {
+    try {
+      const token = authService.getToken();
+      if (token) {
+        const userData = await authService.me();
+        setUser(userData);
+      }
+    } catch (error) {
+      console.error('Failed to fetch user data:', error);
+      authService.removeToken();
+      setUser(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const login = async (token: string, userData: User) => {
     try {
-      localStorage.setItem('token', token);
+      authService.setToken(token);
       localStorage.setItem('user', JSON.stringify(userData));
       setUser(userData);
       return true;
@@ -40,11 +51,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setUser(null);
-    router.push('/');
+  const logout = async () => {
+    try {
+      await authService.logout();
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      authService.removeToken();
+      localStorage.removeItem('user');
+      setUser(null);
+      router.push('/');
+    }
   };
 
   return (

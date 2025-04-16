@@ -5,6 +5,7 @@ export interface Cart {
     food_id: number;
     user_id: number;
     quantity: number;
+    price: number;
     food: Food;
     created_at: string;
     updated_at: string;
@@ -13,6 +14,7 @@ export interface Cart {
 export interface CreateCartDTO {
     food_id: number;
     quantity: number;
+    price: number;
 }
 
 export interface UpdateCartDTO {

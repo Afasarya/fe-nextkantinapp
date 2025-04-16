@@ -55,10 +55,17 @@ const MenuPage = () => {
       return;
     }
 
+    const food = foods.find(f => f.id === id);
+    if (!food) {
+      toast.error('Makanan tidak ditemukan');
+      return;
+    }
+
     try {
       await cartService.create({
         food_id: id,
-        quantity: 1
+        quantity: 1,
+        price: food.price
       });
       toast.success('Berhasil menambahkan ke keranjang');
     } catch (error: any) {

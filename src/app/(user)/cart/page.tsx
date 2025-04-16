@@ -11,144 +11,102 @@ import Button from '@/components/ui/Button';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/Card';
 import { formatCurrency } from '@/lib/utils';
 import toast from 'react-hot-toast';
-
-// Sample cart data
-const initialCartItems = [
-  {
-    id: '1',
-    name: 'Nasi Goreng Spesial',
-    price: 15000,
-    quantity: 2,
-    imageUrl: '/images/food-items/item1.jpg',
-    notes: 'Pedas level 2, tambah telur',
-  },
-  {
-    id: '2',
-    name: 'Es Teh Manis',
-    price: 5000,
-    quantity: 2,
-    imageUrl: '/images/food-items/item3.jpg',
-    notes: '',
-  },
-  {
-    id: '3',
-    name: 'Ayam Penyet',
-    price: 18000,
-    quantity: 1,
-    imageUrl: '/images/food-items/item4.jpg',
-    notes: 'Sambal terpisah',
-  },
-];
-
-// Sample promo codes
-const availablePromoCodes = [
-  { code: 'DISKON10', discount: 0.1, maxDiscount: 10000, minOrder: 20000 },
-  { code: 'WELCOME20', discount: 0.2, maxDiscount: 15000, minOrder: 30000 },
-];
+import { cartService } from '@/services/cart';
+import { Cart } from '@/types/cart';
+import { authService } from '@/services/auth';
 
 const CartPage = () => {
   const router = useRouter();
-  const [cartItems, setCartItems] = useState(initialCartItems);
+  const [cartItems, setCartItems] = useState<Cart[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [promoCode, setPromoCode] = useState('');
-  const [appliedPromo, setAppliedPromo] = useState<typeof availablePromoCodes[0] | null>(null);
+  const [appliedPromo, setAppliedPromo] = useState<any | null>(null);
   const [promoError, setPromoError] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card'>('cash');
   const [isCheckingOut, setIsCheckingOut] = useState(false);
 
+  useEffect(() => {
+    if (!authService.isAuthenticated()) {
+      router.push('/login');
+      return;
+    }
+    fetchCartItems();
+  }, []);
+
+  const fetchCartItems = async () => {
+    try {
+      const data = await cartService.getAll();
+      setCartItems(data);
+    } catch (error) {
+      toast.error('Gagal memuat keranjang');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleIncrement = async (id: number) => {
+    const item = cartItems.find((item) => item.id === id);
+    if (!item) return;
+
+    try {
+      const updatedCart = await cartService.update(id, {
+        quantity: item.quantity + 1
+      });
+      setCartItems(cartItems.map((item) =>
+        item.id === id ? updatedCart : item
+      ));
+    } catch (error) {
+      toast.error('Gagal memperbarui jumlah item');
+    }
+  };
+
+  const handleDecrement = async (id: number) => {
+    const item = cartItems.find((item) => item.id === id);
+    if (!item || item.quantity <= 1) return;
+
+    try {
+      const updatedCart = await cartService.update(id, {
+        quantity: item.quantity - 1
+      });
+      setCartItems(cartItems.map((item) =>
+        item.id === id ? updatedCart : item
+      ));
+    } catch (error) {
+      toast.error('Gagal memperbarui jumlah item');
+    }
+  };
+
+  const handleRemove = async (id: number) => {
+    try {
+      await cartService.delete(id);
+      setCartItems(cartItems.filter((item) => item.id !== id));
+      toast.success('Item berhasil dihapus dari keranjang');
+    } catch (error) {
+      toast.error('Gagal menghapus item dari keranjang');
+    }
+  };
+
   // Calculate cart totals
-  const subtotal = cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
+  const subtotal = cartItems.reduce((total, item) => total + (item.food.price * item.quantity), 0);
   const serviceFee = 2000;
   const discount = appliedPromo
     ? Math.min(subtotal * appliedPromo.discount, appliedPromo.maxDiscount)
     : 0;
   const total = subtotal + serviceFee - discount;
 
-  const handleIncrement = (id: string) => {
-    setCartItems(
-      cartItems.map((item) =>
-        item.id === id ? { ...item, quantity: item.quantity + 1 } : item
-      )
+  if (isLoading) {
+    return (
+      <main className="min-h-screen bg-secondary-50">
+        <Header />
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-12">
+          <div className="flex justify-center items-center min-h-[400px]">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
+          </div>
+        </div>
+        <Footer />
+      </main>
     );
-  };
-
-  const handleDecrement = (id: string) => {
-    setCartItems(
-      cartItems.map((item) =>
-        item.id === id && item.quantity > 1
-          ? { ...item, quantity: item.quantity - 1 }
-          : item
-      )
-    );
-  };
-
-  const handleRemove = (id: string) => {
-    setCartItems(cartItems.filter((item) => item.id !== id));
-    toast.success('Item telah dihapus dari keranjang');
-  };
-
-  const handleNotesChange = (id: string, notes: string) => {
-    setCartItems(
-      cartItems.map((item) => (item.id === id ? { ...item, notes } : item))
-    );
-  };
-
-  const handleApplyPromo = () => {
-    // Reset previous promo
-    setAppliedPromo(null);
-    setPromoError('');
-
-    if (!promoCode.trim()) {
-      setPromoError('Masukkan kode promo');
-      return;
-    }
-
-    // Check if promo code exists
-    const promoFound = availablePromoCodes.find(
-      (promo) => promo.code === promoCode.toUpperCase()
-    );
-
-    if (!promoFound) {
-      setPromoError('Kode promo tidak valid');
-      return;
-    }
-
-    // Check if minimum order is met
-    if (subtotal < promoFound.minOrder) {
-      setPromoError(
-        `Minimal pembelian Rp ${promoFound.minOrder.toLocaleString('id-ID')} untuk promo ini`
-      );
-      return;
-    }
-
-    // Apply promo
-    setAppliedPromo(promoFound);
-    toast.success('Kode promo berhasil diterapkan!');
-  };
-
-  const handleCheckout = () => {
-    if (cartItems.length === 0) {
-      toast.error('Keranjang Anda kosong');
-      return;
-    }
-
-    setIsCheckingOut(true);
-
-    // Simulate API call delay
-    setTimeout(() => {
-      toast.success('Pesanan berhasil dibuat!');
-      router.push('/orders');
-      setIsCheckingOut(false);
-    }, 1500);
-  };
-
-  // Effect to reset applied promo when cart items change
-  useEffect(() => {
-    if (appliedPromo && subtotal < appliedPromo.minOrder) {
-      setAppliedPromo(null);
-      setPromoError('');
-      toast.error('Promo dihapus karena tidak memenuhi syarat minimum pembelian');
-    }
-  }, [cartItems, appliedPromo, subtotal]);
+  }
 
   return (
     <main className="min-h-screen bg-secondary-50">
@@ -176,23 +134,21 @@ const CartPage = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="divide-y divide-secondary-200">
+                  {/* <div className="divide-y divide-secondary-200">
                     {cartItems.map((item) => (
                       <CartItem
                         key={item.id}
                         id={item.id}
-                        name={item.name}
-                        price={item.price}
+                        name={item.food.name}
+                        price={item.food.price}
                         quantity={item.quantity}
-                        imageUrl={item.imageUrl}
-                        notes={item.notes}
-                        onIncrement={handleIncrement}
-                        onDecrement={handleDecrement}
-                        onRemove={handleRemove}
-                        onNotesChange={handleNotesChange}
+                        imageUrl={item.food.image}
+                        onIncrement={() => handleIncrement(item.id)}
+                        onDecrement={() => handleDecrement(item.id)}
+                        onRemove={() => handleRemove(item.id)}
                       />
                     ))}
-                  </div>
+                  </div> */}
                 </CardContent>
               </Card>
             </div>
@@ -220,33 +176,9 @@ const CartPage = () => {
                   )}
                   <div className="border-t border-secondary-200 pt-4 flex justify-between">
                     <span className="font-semibold">Total</span>
-                    <span className="font-bold text-primary-600 text-lg">{formatCurrency(total)}</span>
-                  </div>
-
-                  {/* Promo Code Input */}
-                  <div className="pt-4">
-                    <p className="text-sm font-medium mb-2">Kode Promo</p>
-                    <div className="flex">
-                      <input
-                        type="text"
-                        value={promoCode}
-                        onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
-                        placeholder="Masukkan kode promo"
-                        className="flex-1 p-2 border border-secondary-300 rounded-l-md focus:outline-none focus:ring-1 focus:ring-primary-500"
-                      />
-                      <button
-                        onClick={handleApplyPromo}
-                        className="px-4 py-2 bg-primary-600 text-white rounded-r-md hover:bg-primary-700 transition-colors"
-                      >
-                        Terapkan
-                      </button>
-                    </div>
-                    {promoError && <p className="text-sm text-red-600 mt-1">{promoError}</p>}
-                    {appliedPromo && (
-                      <p className="text-sm text-green-600 mt-1">
-                        Promo {appliedPromo.code} berhasil diterapkan!
-                      </p>
-                    )}
+                    <span className="font-bold text-primary-600 text-lg">
+                      {formatCurrency(total)}
+                    </span>
                   </div>
 
                   {/* Payment Method */}
@@ -285,7 +217,9 @@ const CartPage = () => {
                     variant="primary"
                     fullWidth
                     size="lg"
-                    onClick={handleCheckout}
+                    onClick={() => {
+                      toast.success('Fitur checkout akan segera hadir!');
+                    }}
                     isLoading={isCheckingOut}
                   >
                     Pesan Sekarang
