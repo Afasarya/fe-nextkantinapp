@@ -22,10 +22,19 @@ const LoginPage = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (authService.isAuthenticated()) {
-      router.push('/');
-    }
-  }, []);
+    const checkAuth = async () => {
+      if (authService.isAuthenticated()) {
+        const user = authService.getUserFromStorage();
+        if (user?.role === 'stand') {
+          router.push('/dashboard');
+        } else if (user?.role === 'student') {
+          router.push('/');
+        }
+      }
+    };
+    
+    checkAuth();
+  }, [router]);
 
   const validateForm = () => {
     const newErrors: { email?: string; password?: string } = {};
@@ -59,25 +68,25 @@ const LoginPage = () => {
 
     try {
       const response = await authService.login(formData);
-      console.log('Login Response:', response); // Debugging
 
-      if (response && response.token && response.user) {
-        authService.setToken(response.token);
+      if (response.status === 'success' && response.data) {
         toast.success('Login berhasil!');
 
-        setTimeout(() => {
-          if (authService.hasRole(response.user, 'Stand')) {
-            router.push('/stand/dashboard');
-          } else {
-            router.push('/');
-          }
-        }, 1000);
+        // Redirect berdasarkan role
+        if (response.data.user.role === 'stand') {
+          router.push('/dashboard');
+        } else if (response.data.user.role === 'student') {
+          router.push('/');
+        }
       } else {
-        toast.error('Data login tidak lengkap, silakan coba lagi.');
+        toast.error(response.message || 'Gagal melakukan login');
       }
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Email atau password salah';
-      toast.error(errorMessage);
+    } catch (error) {
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error('Terjadi kesalahan saat login');
+      }
 
       setFormData(prev => ({
         ...prev,
@@ -94,6 +103,13 @@ const LoginPage = () => {
       ...prev,
       [name]: value
     }));
+    // Reset error when user types
+    if (errors[name as keyof typeof errors]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: undefined
+      }));
+    }
   };
 
   return (

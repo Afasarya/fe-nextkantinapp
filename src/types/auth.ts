@@ -12,11 +12,9 @@ export interface User {
     id: number;
     name: string;
     email: string;
-    email_verified_at: string | null;
+    role: 'admin' | 'student' | 'stand';
     created_at: string;
     updated_at: string;
-    roles: string[];
-    stand?: Stand;
 }
 
 export interface AuthResponse {
@@ -29,15 +27,28 @@ export interface LoginDTO {
     password: string;
 }
 
-export interface RegisterStudentDTO {
+export interface RegisterStudentDTO extends LoginDTO {
     name: string;
-    email: string;
-    password: string;
-    password_confirmation: string;
+    nim: string;
 }
 
-export interface RegisterStandDTO extends RegisterStudentDTO {
-    stand_name: string;
-    stand_slug: string;
-    stand_description?: string;
+export interface RegisterStandDTO extends LoginDTO {
+    name: string;
+    description: string;
+}
+
+export interface LoginResponse {
+    status: string;
+    data?: {
+        token: string;
+        user: User;
+    };
+    message?: string;
+}
+
+export interface AuthContextType {
+    user: User | null;
+    loading: boolean;
+    login: (email: string, password: string) => Promise<boolean>;
+    logout: () => Promise<void>;
 }

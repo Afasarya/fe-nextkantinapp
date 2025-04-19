@@ -1,6 +1,7 @@
 import './globals.css';
 import { Quicksand } from 'next/font/google';
 import { Toaster } from 'react-hot-toast';
+import { AuthProvider } from "@/context/AuthContext";
 
 const quicksand = Quicksand({
   subsets: ['latin'],
@@ -22,8 +23,19 @@ export default function RootLayout({
   return (
     <html lang="id" className={quicksand.variable}>
       <body className="font-sans">
-        {children}
-        <Toaster position="top-center" />
+        <AuthProvider>
+          {children}
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              duration: 3000,
+              style: {
+                background: '#333',
+                color: '#fff',
+              },
+            }}
+          />
+        </AuthProvider>
       </body>
     </html>
   );

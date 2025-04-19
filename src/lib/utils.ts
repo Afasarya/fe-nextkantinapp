@@ -1,6 +1,6 @@
 "use client";
 
-import { ClassValue, clsx } from 'clsx';
+import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
 /**
@@ -18,6 +18,7 @@ export function formatCurrency(amount: number): string {
     style: 'currency',
     currency: 'IDR',
     minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
   }).format(amount);
 }
 
@@ -85,8 +86,8 @@ export function debounce<T extends (...args: unknown[]) => unknown>(
  * Validates an email address
  */
 export function isValidEmail(email: string): boolean {
-  const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-  return re.test(email);
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
 }
 
 /**
@@ -113,4 +114,20 @@ export function getInitials(name: string): string {
     .join('')
     .toUpperCase()
     .slice(0, 2);
+}
+
+// Helper untuk menghandle URL gambar dari backend
+export function getImageUrl(path: string): string {
+  if (!path) return '';
+  
+  // Jika path sudah berupa URL lengkap, langsung kembalikan
+  if (path.startsWith('http')) {
+    // Ganti storage/storage menjadi storage/public jika ditemukan
+    return path.replace('/storage/storage/', '/storage/public/');
+  }
+
+  // Jika path relatif, tambahkan base URL
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  return `${baseUrl}/storage/public${cleanPath}`;
 }

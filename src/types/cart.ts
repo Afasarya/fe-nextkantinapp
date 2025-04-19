@@ -14,7 +14,6 @@ export interface Cart {
 export interface CreateCartDTO {
     food_id: number;
     quantity: number;
-    price: number;
 }
 
 export interface UpdateCartDTO {

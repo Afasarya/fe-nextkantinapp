@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion, useAnimation } from 'framer-motion';
@@ -11,6 +11,11 @@ import Footer from '@/components/layout/Footer';
 import Button from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import FoodCard from '@/components/user/FoodCard';
+import { foodService } from '@/services/food';
+import { cartService } from '@/services/cart';
+import { Food } from '@/types/food';
+import { useAuth } from '@/context/AuthContext';
+import toast from 'react-hot-toast';
 
 // Sample food data
 const popularFoods = [
@@ -153,6 +158,46 @@ const AnimatedSection = ({ children, className, id }: AnimatedSectionProps) => {
 };
 
 export default function Home() {
+  const [popularFoods, setPopularFoods] = useState<Food[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { user } = useAuth();
+
+  useEffect(() => {
+    fetchPopularFoods();
+  }, []);
+
+  const fetchPopularFoods = async () => {
+    try {
+      setIsLoading(true);
+      const foods = await foodService.getAll();
+      // Ambil 4 makanan terbaru
+      setPopularFoods(foods.slice(0, 4));
+    } catch (error) {
+      console.error('Error fetching popular foods:', error);
+      toast.error('Gagal memuat menu populer');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAddToCart = async (foodId: number) => {
+    if (!user) {
+      toast.error('Silakan login terlebih dahulu');
+      return;
+    }
+
+    try {
+      await cartService.create({
+        food_id: foodId,
+        quantity: 1
+      });
+      toast.success('Berhasil menambahkan ke keranjang');
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Gagal menambahkan ke keranjang';
+      toast.error(message);
+    }
+  };
+
   return (
     <main className="overflow-x-hidden">
       <Header />
@@ -284,29 +329,38 @@ export default function Home() {
             </Link>
           </div>
           
-          <motion.div 
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
-            variants={staggerContainer}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.1 }}
-          >
-            {popularFoods.map((food) => (
-              <motion.div key={food.id} variants={fadeInUp}>
-                <FoodCard
-                  id={food.id}
-                  name={food.name}
-                  price={food.price}
-                  originalPrice={food.originalPrice}
-                  category={food.category}
-                  rating={food.rating}
-                  imageUrl={food.imageUrl}
-                  isAvailable={food.isAvailable !== false}
-                  onAddToCart={() => {}}
-                />
-              </motion.div>
-            ))}
-          </motion.div>
+          {isLoading ? (
+            <div className="flex justify-center items-center min-h-[300px]">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
+            </div>
+          ) : popularFoods.length > 0 ? (
+            <motion.div 
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
+              variants={staggerContainer}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, amount: 0.1 }}
+            >
+              {popularFoods.map((food) => (
+                <motion.div key={food.id} variants={fadeInUp}>
+                  <FoodCard
+                    id={food.id}
+                    name={food.name}
+                    price={food.price}
+                    description={food.description}
+                    imageUrl={food.image}
+                    originalPrice={food.is_discount ? food.price : undefined}
+                    discountPrice={food.is_discount ? food.discount_price : undefined}
+                    onAddToCart={() => handleAddToCart(food.id)}
+                  />
+                </motion.div>
+              ))}
+            </motion.div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-secondary-600">Tidak ada menu yang tersedia</p>
+            </div>
+          )}
         </div>
       </AnimatedSection>
       

@@ -1,58 +1,123 @@
-import api from './api';
-import { AuthResponse, LoginDTO, RegisterStudentDTO, RegisterStandDTO, User } from '@/types/auth';
+import { api } from './api';
+import { LoginDTO, LoginResponse, RegisterStandDTO, RegisterStudentDTO, User } from '@/types/auth';
 
-export const authService = {
-    login: async (data: LoginDTO): Promise<AuthResponse> => {
-        const response = await api.post('/api/login', data);
-        return response.data.data;
-    },
+class AuthService {
+    private TOKEN_KEY = 'token';
+    private USER_KEY = 'user';
 
-    registerStudent: async (data: RegisterStudentDTO): Promise<AuthResponse> => {
-        const response = await api.post('/api/register', data);
-        return response.data.data;
-    },
-
-    registerStand: async (data: RegisterStandDTO): Promise<AuthResponse> => {
-        const response = await api.post('/api/register', data);
-        return response.data.data;
-    },
-
-    logout: async (): Promise<void> => {
-        await api.post('/api/logout');
-    },
-
-    me: async (): Promise<User> => {
-        const response = await api.get('/api/me');
-        return response.data.data;
-    },
-
-    // Helper untuk menyimpan token di localStorage
-    setToken: (token: string): void => {
-        localStorage.setItem('token', token);
-    },
-
-    // Helper untuk mengambil token dari localStorage
-    getToken: (): string | null => {
-        return localStorage.getItem('token');
-    },
-
-    // Helper untuk menghapus token dari localStorage
-    removeToken: (): void => {
-        localStorage.removeItem('token');
-    },
-
-    // Helper untuk mengecek apakah user sudah login
-    isAuthenticated: (): boolean => {
-        return !!localStorage.getItem('token');
-    },
-
-    // Helper untuk mengecek role user
-    hasRole: (user: User | null, role: string): boolean => {
-        return user?.roles.includes(role) ?? false;
-    },
-
-    // Helper untuk mengecek apakah user adalah pemilik stand
-    isStandOwner: (user: User | null): boolean => {
-        return user?.roles.includes('Stand') ?? false;
+    async login(data: LoginDTO): Promise<LoginResponse> {
+        try {
+            const response = await api.post<LoginResponse>('/login', data);
+            if (response.data.status === 'success' && response.data.data) {
+                localStorage.setItem(this.TOKEN_KEY, response.data.data.token);
+                localStorage.setItem(this.USER_KEY, JSON.stringify(response.data.data.user));
+            }
+            return response.data;
+        } catch (error) {
+            if (error instanceof Error) {
+                throw new Error(error.message);
+            }
+            throw new Error('Terjadi kesalahan saat login');
+        }
     }
-};
+
+    async registerStudent(data: RegisterStudentDTO): Promise<LoginResponse> {
+        try {
+            const response = await api.post<LoginResponse>('api/register', {
+                ...data,
+                role: 'student'
+            });
+            if (response.data.status === 'success' && response.data.data) {
+                localStorage.setItem(this.TOKEN_KEY, response.data.data.token);
+                localStorage.setItem(this.USER_KEY, JSON.stringify(response.data.data.user));
+            }
+            return response.data;
+        } catch (error) {
+            if (error instanceof Error) {
+                throw new Error(error.message);
+            }
+            throw new Error('Terjadi kesalahan saat registrasi');
+        }
+    }
+
+    async registerStand(data: RegisterStandDTO): Promise<LoginResponse> {
+        try {
+            const response = await api.post<LoginResponse>('api/register', {
+                ...data,
+                role: 'stand'
+            });
+            if (response.data.status === 'success' && response.data.data) {
+                localStorage.setItem(this.TOKEN_KEY, response.data.data.token);
+                localStorage.setItem(this.USER_KEY, JSON.stringify(response.data.data.user));
+            }
+            return response.data;
+        } catch (error) {
+            if (error instanceof Error) {
+                throw new Error(error.message);
+            }
+            throw new Error('Terjadi kesalahan saat registrasi');
+        }
+    }
+
+    async logout(): Promise<void> {
+        try {
+            await api.post('api/logout');
+            this.clearAuth();
+        } catch (error) {
+            if (error instanceof Error) {
+                throw new Error(error.message);
+            }
+            throw new Error('Terjadi kesalahan saat logout');
+        }
+    }
+
+    async getUser(): Promise<User | null> {
+        try {
+            const response = await api.get('/me');
+            if (response.data.status === 'success' && response.data.data) {
+                return response.data.data;
+            }
+            return null;
+        } catch (error) {
+            return null;
+        }
+    }
+
+    getToken(): string | null {
+        return localStorage.getItem(this.TOKEN_KEY);
+    }
+
+    getUserFromStorage(): User | null {
+        const userStr = localStorage.getItem(this.USER_KEY);
+        if (!userStr) return null;
+        try {
+            return JSON.parse(userStr);
+        } catch {
+            return null;
+        }
+    }
+
+    clearAuth(): void {
+        localStorage.removeItem(this.TOKEN_KEY);
+        localStorage.removeItem(this.USER_KEY);
+    }
+
+    isAuthenticated(): boolean {
+        return !!this.getToken();
+    }
+
+    hasRole(user: User | null, role: string): boolean {
+        if (!user) return false;
+        return user.role.toLowerCase() === role.toLowerCase();
+    }
+
+    isStandOwner(user: User | null): boolean {
+        return this.hasRole(user, 'stand');
+    }
+
+    isStudent(user: User | null): boolean {
+        return this.hasRole(user, 'student');
+    }
+}
+
+export const authService = new AuthService();

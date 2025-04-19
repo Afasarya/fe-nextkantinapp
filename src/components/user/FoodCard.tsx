@@ -1,74 +1,85 @@
 "use client";
 
 import React from 'react';
-import Image from 'next/image';
-import { FaPlus, FaStar } from 'react-icons/fa';
-import { formatCurrency } from '@/lib/utils';
+import { FaShoppingCart } from 'react-icons/fa';
+import { formatCurrency, getImageUrl } from '@/lib/utils';
+import Button from '@/components/ui/Button';
 
 interface FoodCardProps {
   id: number;
   name: string;
   price: number;
+  description: string;
+  imageUrl: string;
   originalPrice?: number;
   discountPrice?: number | null;
-  imageUrl: string;
-  description: string;
-  onAddToCart: (id: number) => void;
+  onAddToCart: () => void;
 }
 
-const FoodCard = ({
-  id,
+const FoodCard: React.FC<FoodCardProps> = ({
   name,
   price,
+  description,
+  imageUrl,
   originalPrice,
   discountPrice,
-  imageUrl,
-  description,
   onAddToCart,
-}: FoodCardProps) => {
+}) => {
+  const hasDiscount = originalPrice && discountPrice;
+  const imageUrlFixed = getImageUrl(imageUrl);
+
   return (
-    <div className="bg-white rounded-lg shadow-sm overflow-hidden border border-secondary-100">
-      <div className="relative">
+    <div className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-300">
+      <div className="relative h-48">
         <img
-          src={imageUrl}
+          src={imageUrlFixed}
           alt={name}
-          className="w-full h-48 object-cover"
+          className="w-full h-full object-cover"
         />
-        {discountPrice && (
+        {hasDiscount && (
           <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded-full text-xs">
             Diskon
           </div>
         )}
       </div>
+      
       <div className="p-4">
-        <h3 className="font-semibold text-lg mb-1">{name}</h3>
-        <p className="text-secondary-600 text-sm mb-2 line-clamp-2">
+        <h3 className="font-semibold text-secondary-900 mb-1 line-clamp-1">
+          {name}
+        </h3>
+        
+        <p className="text-secondary-600 text-sm mb-3 line-clamp-2">
           {description}
         </p>
-        <div className="flex items-center justify-between">
+
+        <div className="flex items-center justify-between mb-3">
           <div>
-            {discountPrice ? (
+            {hasDiscount ? (
               <>
-                <span className="text-red-500 font-semibold">
-                  Rp {discountPrice.toLocaleString('id-ID')}
-                </span>
-                <span className="text-secondary-400 text-sm line-through ml-2">
-                  Rp {price.toLocaleString('id-ID')}
-                </span>
+                <p className="text-primary-600 font-semibold">
+                  {formatCurrency(discountPrice || 0)}
+                </p>
+                <p className="text-secondary-500 text-sm line-through">
+                  {formatCurrency(originalPrice)}
+                </p>
               </>
             ) : (
-              <span className="text-primary-600 font-semibold">
-                Rp {price.toLocaleString('id-ID')}
-              </span>
+              <p className="text-primary-600 font-semibold">
+                {formatCurrency(price)}
+              </p>
             )}
           </div>
-          <button
-            onClick={() => onAddToCart(id)}
-            className="px-3 py-1 bg-primary-600 text-white rounded-full text-sm hover:bg-primary-700 transition-colors"
-          >
-            + Keranjang
-          </button>
         </div>
+
+        <Button
+          variant="primary"
+          fullWidth
+          onClick={onAddToCart}
+          className="flex items-center justify-center gap-2"
+        >
+          <FaShoppingCart size={16} />
+          <span>Tambah ke Keranjang</span>
+        </Button>
       </div>
     </div>
   );

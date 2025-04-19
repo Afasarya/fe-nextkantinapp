@@ -21,6 +21,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import toast from 'react-hot-toast';
 import { Food, CreateFoodDTO, UpdateFoodDTO } from '@/types/food';
 import { foodService } from '@/services/food';
+import { getImageUrl } from '@/lib/utils';
 
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('id-ID', {
@@ -414,14 +415,13 @@ const AdminProductsPage = () => {
                     foods.map((food) => (
                       <tr key={food.id} className="border-b">
                         <td className="px-4 py-3">
-                          {/* <div className="h-12 w-12 relative">
-                            <Image
-                              src={food.image}
+                          <div className="h-12 w-12">
+                            <img
+                              src={food.image ? getImageUrl(food.image) : '/placeholder.jpg'}
                               alt={food.name}
-                              fill
-                              className="object-cover rounded"
+                              className="w-full h-full object-cover rounded"
                             />
-                          </div> */}
+                          </div>
                         </td>
                         <td className="px-4 py-3">{food.name}</td>
                         <td className="px-4 py-3">
