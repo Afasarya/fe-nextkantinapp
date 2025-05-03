@@ -170,12 +170,12 @@ export default function Home() {
   return (
     <main className="overflow-x-hidden">
       <Header />
-      
+
       {/* Redesigned Hero Section */}
       <section className="pt-28 pb-20 bg-gradient-to-br from-white to-primary-50">
         <div className="container mx-auto px-6 lg:px-8 max-w-7xl">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-            <motion.div 
+            <motion.div
               className="lg:col-span-6"
               initial={{ opacity: 0, x: -50 }}
               animate={{ opacity: 1, x: 0 }}
@@ -215,7 +215,7 @@ export default function Home() {
                 </span>
               </div>
             </motion.div>
-            
+
             <motion.div
               className="lg:col-span-6 relative"
               initial={{ opacity: 0, y: 50 }}
@@ -226,12 +226,14 @@ export default function Home() {
                 <div className="absolute top-0 right-0 w-[95%] h-full">
                   <div className="relative h-full w-full rounded-xl overflow-hidden shadow-2xl">
                     <Image
-                      src="/images/hero-banner.jpg"
+                      src="/images/image.png"
                       alt="Koleksi makanan kantin"
                       fill
                       priority
+                      sizes="(max-width: 768px) 100vw, 50vw"
                       className="object-cover"
                     />
+
                   </div>
                 </div>
                 <div className="absolute -bottom-6 -left-4 bg-white p-4 rounded-lg shadow-lg w-48">
@@ -250,7 +252,7 @@ export default function Home() {
           </div>
         </div>
       </section>
-      
+
       {/* Features Section */}
       <AnimatedSection className="py-20 bg-white" id="features">
         <div className="container mx-auto px-6 lg:px-8 max-w-7xl">
@@ -260,8 +262,8 @@ export default function Home() {
               Aplikasi kantin online yang dirancang khusus untuk memenuhi kebutuhan siswa dan staff sekolah
             </p>
           </div>
-          
-          <motion.div 
+
+          <motion.div
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8"
             variants={staggerContainer}
             initial="hidden"
@@ -269,7 +271,7 @@ export default function Home() {
             viewport={{ once: true, amount: 0.2 }}
           >
             {features.map((feature, index) => (
-              <motion.div 
+              <motion.div
                 key={index}
                 variants={fadeInUp}
                 className="p-6 border border-secondary-100 rounded-lg hover:shadow-xl transition-all duration-300 bg-white hover:border-primary-200"
@@ -282,7 +284,7 @@ export default function Home() {
           </motion.div>
         </div>
       </AnimatedSection>
-      
+
       {/* Popular Menu Section */}
       <AnimatedSection className="py-20 bg-secondary-50" id="popular-menu">
         <div className="container mx-auto px-6 lg:px-8 max-w-7xl">
@@ -297,13 +299,13 @@ export default function Home() {
               <Button variant="primary">Lihat Semua Menu</Button>
             </Link>
           </div>
-          
+
           {isLoading ? (
             <div className="flex justify-center items-center min-h-[300px]">
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
             </div>
           ) : popularFoods.length > 0 ? (
-            <motion.div 
+            <motion.div
               className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
               variants={staggerContainer}
               initial="hidden"
@@ -332,7 +334,7 @@ export default function Home() {
           )}
         </div>
       </AnimatedSection>
-      
+
       {/* How It Works Section */}
       <AnimatedSection className="py-20 bg-white" id="how-it-works">
         <div className="container mx-auto px-6 lg:px-8 max-w-7xl">
@@ -342,8 +344,8 @@ export default function Home() {
               Proses pemesanan yang mudah dan cepat, hanya dalam beberapa langkah sederhana
             </p>
           </div>
-          
-          <motion.div 
+
+          <motion.div
             className="grid grid-cols-1 md:grid-cols-3 gap-10"
             variants={staggerContainer}
             initial="hidden"
@@ -369,7 +371,7 @@ export default function Home() {
           </motion.div>
         </div>
       </AnimatedSection>
-      
+
       {/* Testimonials Section */}
       <AnimatedSection className="py-20 bg-secondary-50" id="testimonials">
         <div className="container mx-auto px-6 lg:px-8 max-w-7xl">
@@ -379,8 +381,8 @@ export default function Home() {
               Pengalaman dari para pengguna KantinKu
             </p>
           </div>
-          
-          <motion.div 
+
+          <motion.div
             className="grid grid-cols-1 md:grid-cols-3 gap-8"
             variants={staggerContainer}
             initial="hidden"
@@ -394,11 +396,10 @@ export default function Home() {
                     {[...Array(5)].map((_, i) => (
                       <FaStar
                         key={i}
-                        className={`w-5 h-5 ${
-                          i < testimonial.rating
+                        className={`w-5 h-5 ${i < testimonial.rating
                             ? 'text-yellow-400'
                             : 'text-secondary-300'
-                        }`}
+                          }`}
                       />
                     ))}
                   </div>
@@ -420,7 +421,7 @@ export default function Home() {
           </motion.div>
         </div>
       </AnimatedSection>
-      
+
       {/* CTA Section */}
       <AnimatedSection className="py-20 bg-gradient-to-br from-primary-600 to-primary-700" id="cta">
         <div className="container mx-auto px-6 lg:px-8 max-w-7xl text-center">
@@ -451,7 +452,7 @@ export default function Home() {
           </motion.div>
         </div>
       </AnimatedSection>
-      
+
       <Footer />
     </main>
   );
