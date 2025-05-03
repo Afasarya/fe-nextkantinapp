@@ -2,8 +2,8 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { FaUser, FaEnvelope, FaLock, FaEye, FaEyeSlash, FaPhone, FaStore } from 'react-icons/fa';
+// import { useRouter } from 'next/navigation'; // Tidak digunakan lagi
+import { FaUser, FaEnvelope, FaLock, FaEye, FaEyeSlash, FaStore } from 'react-icons/fa';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { isValidEmail } from '@/lib/utils';
@@ -12,7 +12,7 @@ import { authService } from '@/services/auth';
 import { RegisterStudentDTO, RegisterStandDTO } from '@/types/auth';
 
 const RegisterPage = () => {
-  const router = useRouter();
+  // const router = useRouter(); // Tidak digunakan lagi
   const [registerType, setRegisterType] = useState<'student' | 'stand'>('student');
   const [formData, setFormData] = useState({
     name: '',
@@ -128,17 +128,42 @@ const RegisterPage = () => {
       if (response.status === 'success' && response.data) {
         toast.success('Pendaftaran berhasil!');
         
-        // Redirect berdasarkan tipe registrasi
-        if (registerType === 'stand') {
-          router.push('/dashboard');
+        // Pastikan token dan user disimpan di localStorage
+        if (response.data?.token && response.data?.user) {
+          // Tambahan langkah untuk memastikan auth service juga menyimpan data
+          authService.setToken(response.data.token);
+          localStorage.setItem('user', JSON.stringify(response.data.user));
+          
+          console.log('Registrasi berhasil:', response.data);
+          
+          // Tentukan url redirect berdasarkan role
+          let redirectUrl = '/';
+          // Cek role dari user yang baru dibuat
+          const user = response.data?.user;
+          if (user && user.roles && user.roles.includes('Stand')) {
+            // Redirect ke dashboard jika role Stand
+            redirectUrl = '/dashboard';
+          } else if (registerType === 'stand') {
+            // Fallback jika role tidak terdeteksi tapi tipe registrasi adalah stand
+            redirectUrl = '/dashboard';
+          }
+          
+          // Gunakan pendekatan direct browser navigation
+          setTimeout(() => {
+            window.location.href = redirectUrl;
+          }, 1500);
         } else {
-          router.push('/');
+          toast.error('Data login tidak lengkap, silakan login manual');
+          setTimeout(() => {
+            window.location.href = '/login';
+          }, 2000);
         }
       } else {
         toast.error(response.message || 'Gagal melakukan pendaftaran');
       }
-    } catch (error: any) {
-      toast.error(error.message || 'Gagal melakukan pendaftaran');
+    } catch (error: unknown) {
+      const err = error as Error;
+      toast.error(err.message || 'Gagal melakukan pendaftaran');
     } finally {
       setIsLoading(false);
     }

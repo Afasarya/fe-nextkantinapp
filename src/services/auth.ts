@@ -30,8 +30,15 @@ class AuthService {
                 password_confirmation: data.password_confirmation
             });
             if (response.data.status === 'success' && response.data.data) {
+                // Simpan ke localStorage untuk login otomatis
                 localStorage.setItem(this.TOKEN_KEY, response.data.data.token);
                 localStorage.setItem(this.USER_KEY, JSON.stringify(response.data.data.user));
+                
+                // Log untuk debugging
+                console.log('Register Student success, saved auth data:', { 
+                    token: response.data.data.token,
+                    user: response.data.data.user 
+                });
             }
             return response.data;
         } catch (error) {
@@ -54,8 +61,15 @@ class AuthService {
                 stand_description: data.stand_description
             });
             if (response.data.status === 'success' && response.data.data) {
+                // Simpan ke localStorage untuk login otomatis
                 localStorage.setItem(this.TOKEN_KEY, response.data.data.token);
                 localStorage.setItem(this.USER_KEY, JSON.stringify(response.data.data.user));
+                
+                // Log untuk debugging
+                console.log('Register Stand success, saved auth data:', { 
+                    token: response.data.data.token,
+                    user: response.data.data.user 
+                });
             }
             return response.data;
         } catch (error) {
@@ -84,13 +98,23 @@ class AuthService {
         }
         
         // Jika tidak ada di localStorage, baru panggil API
+        // Dan tangani jika API gagal tanpa mengarahkan ke login
         try {
+            const token = this.getToken();
+            if (!token) return null;
+            
+            console.log('Fetching user data with token:', token);
             const response = await api.get('/api/me');
+            
             if (response.data.status === 'success' && response.data.data) {
+                // Simpan user yang baru diambil ke localStorage
+                localStorage.setItem(this.USER_KEY, JSON.stringify(response.data.data));
                 return response.data.data;
             }
             return null;
-        } catch {
+        } catch (error) {
+            // Jangan redirect ke login, hanya return null
+            console.error('Error fetching user:', error);
             return null;
         }
     }
@@ -124,7 +148,14 @@ class AuthService {
 
     hasRole(user: User | null, role: string): boolean {
         if (!user) return false;
-        return user.role.toLowerCase() === role.toLowerCase();
+        // Periksa baik roles (array) maupun role (string)
+        if (user.roles && user.roles.length > 0) {
+            return user.roles.map(r => r.toLowerCase()).includes(role.toLowerCase());
+        }
+        if (user.role) {
+            return user.role.toLowerCase() === role.toLowerCase();
+        }
+        return false;
     }
 
     isStandOwner(user: User | null): boolean {

@@ -12,7 +12,9 @@ export interface User {
     id: number;
     name: string;
     email: string;
-    role: 'Student' | 'Stand';
+    role?: 'Student' | 'Stand';
+    roles?: string[];
+    stand?: Stand;
     created_at: string;
     updated_at: string;
 }

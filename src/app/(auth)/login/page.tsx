@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+// import { useRouter } from 'next/navigation'; // Tidak digunakan lagi
 import { FaEnvelope, FaLock, FaEye, FaEyeSlash } from 'react-icons/fa';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
@@ -12,7 +12,7 @@ import { authService } from '@/services/auth';
 import { LoginDTO } from '@/types/auth';
 
 const LoginPage = () => {
-  const router = useRouter();
+  // const router = useRouter(); // Tidak digunakan lagi
   const [formData, setFormData] = useState<LoginDTO>({
     email: '',
     password: ''
@@ -31,10 +31,11 @@ const LoginPage = () => {
         if (authService.isAuthenticated()) {
           const user = authService.getUserFromStorage();
           if (isMounted) {
-            if (user?.role === 'Stand') {
-              router.push('/dashboard');
-            } else if (user?.role === 'Student') {
-              router.push('/');
+            // Cek roles (array) atau role (string) dari backend
+            if ((user?.roles && user.roles.includes('Stand')) || user?.role === 'Stand') {
+              window.location.href = '/dashboard';
+            } else if ((user?.roles && user.roles.includes('Student')) || user?.role === 'Student') {
+              window.location.href = '/';
             }
           }
         }
@@ -54,7 +55,7 @@ const LoginPage = () => {
     return () => {
       isMounted = false;
     };
-  }, [router]); 
+  }, []); 
 
   const validateForm = () => {
     const newErrors: { email?: string; password?: string } = {};
@@ -90,14 +91,23 @@ const LoginPage = () => {
       const response = await authService.login(formData);
 
       if (response.status === 'success' && response.data) {
-        toast.success('Login berhasil!');
-
-        // Redirect berdasarkan role
-        if (response.data.user.role === 'Stand') {
-          router.push('/dashboard');
-        } else if (response.data.user.role === 'Student') {
-          router.push('/');
+        // Simpan data login terlebih dahulu
+        const user = response.data.user;
+        console.log('Login success, user data:', user);
+        
+        // Tentukan halaman tujuan
+        let redirectUrl = '/';
+        if ((user.roles && user.roles.includes('Stand')) || user.role === 'Stand') {
+          redirectUrl = '/dashboard';
         }
+        
+        // Tampilkan toast sukses
+        toast.success('Login berhasil!');
+        
+        // Gunakan pendekatan direct browser navigation setelah delay
+        setTimeout(() => {
+          window.location.href = redirectUrl;
+        }, 1500);
       } else {
         toast.error(response.message || 'Gagal melakukan login');
       }

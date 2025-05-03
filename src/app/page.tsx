@@ -18,42 +18,8 @@ import { useAuth } from '@/context/AuthContext';
 import toast from 'react-hot-toast';
 
 // Sample food data
-const popularFoods = [
-  {
-    id: '1',
-    name: 'Nasi Goreng Spesial',
-    price: 15000,
-    originalPrice: 18000,
-    category: 'Makanan Utama',
-    rating: 4.8,
-    imageUrl: '/images/food-items/item1.jpg',
-  },
-  {
-    id: '2',
-    name: 'Mie Ayam Bakso',
-    price: 12000,
-    category: 'Makanan Utama',
-    rating: 4.5,
-    imageUrl: '/images/food-items/item2.jpg',
-  },
-  {
-    id: '3',
-    name: 'Es Teh Manis',
-    price: 5000,
-    category: 'Minuman',
-    rating: 4.3,
-    imageUrl: '/images/food-items/item3.jpg',
-  },
-  {
-    id: '4',
-    name: 'Ayam Penyet',
-    price: 18000,
-    category: 'Makanan Utama',
-    rating: 4.7,
-    imageUrl: '/images/food-items/item4.jpg',
-    isAvailable: false,
-  },
-];
+// Data contoh tidak digunakan karena kita sekarang menggunakan API
+// HAPUS DATA CONTOH YANG SEBENARNYA TIDAK DIGUNAKAN
 
 // Sample testimonials
 const testimonials = [
@@ -175,6 +141,8 @@ export default function Home() {
     } catch (error) {
       console.error('Error fetching popular foods:', error);
       toast.error('Gagal memuat menu populer');
+      // Tetap set array kosong jika terjadi error
+      setPopularFoods([]);
     } finally {
       setIsLoading(false);
     }
@@ -192,8 +160,9 @@ export default function Home() {
         quantity: 1
       });
       toast.success('Berhasil menambahkan ke keranjang');
-    } catch (error: any) {
-      const message = error.response?.data?.message || 'Gagal menambahkan ke keranjang';
+    } catch (error: unknown) {
+      const errorObj = error as { response?: { data?: { message?: string } } };
+      const message = errorObj.response?.data?.message || 'Gagal menambahkan ke keranjang';
       toast.error(message);
     }
   };
@@ -347,8 +316,8 @@ export default function Home() {
                     id={food.id}
                     name={food.name}
                     price={food.price}
-                    description={food.description}
-                    imageUrl={food.image}
+                    description={food.description || ''}
+                    imageUrl={food.image || '/images/food-default.jpg'}
                     originalPrice={food.is_discount ? food.price : undefined}
                     discountPrice={food.is_discount ? food.discount_price : undefined}
                     onAddToCart={() => handleAddToCart(food.id)}

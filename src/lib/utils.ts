@@ -118,16 +118,21 @@ export function getInitials(name: string): string {
 
 // Helper untuk menghandle URL gambar dari backend
 export function getImageUrl(path: string): string {
-  if (!path) return '';
+  if (!path) return '/images/placeholder-food.jpg';
   
   // Jika path sudah berupa URL lengkap, langsung kembalikan
   if (path.startsWith('http')) {
-    // Ganti storage/storage menjadi storage/public jika ditemukan
-    return path.replace('/storage/storage/', '/storage/public/');
+    return path;
   }
-
-  // Jika path relatif, tambahkan base URL
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
-  const cleanPath = path.startsWith('/') ? path : `/${path}`;
-  return `${baseUrl}/storage/public${cleanPath}`;
+  
+  // Jika path mulai dengan storage/, hapus prefix ini karena sudah relatif
+  const normalizedPath = path.startsWith('storage/') 
+    ? path.replace('storage/', '') 
+    : path;
+  
+  // Tambahkan base URL
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+  
+  // Pastikan URL dibentuk dengan benar
+  return `${baseUrl}/storage/${normalizedPath}`;
 }

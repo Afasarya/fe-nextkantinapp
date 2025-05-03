@@ -26,12 +26,38 @@ export default function RootLayout({
         <AuthProvider>
           {children}
           <Toaster
-            position="top-right"
+            position="top-center"
             toastOptions={{
-              duration: 3000,
+              duration: 4000,
               style: {
                 background: '#333',
                 color: '#fff',
+                fontSize: '16px',
+                padding: '16px',
+                maxWidth: '350px',
+                textAlign: 'center'
+              },
+              success: {
+                iconTheme: {
+                  primary: '#10B981',
+                  secondary: '#fff',
+                },
+                style: {
+                  background: '#333',
+                  color: '#fff',
+                  borderLeft: '5px solid #10B981',
+                },
+              },
+              error: {
+                iconTheme: {
+                  primary: '#EF4444',
+                  secondary: '#fff',
+                },
+                style: {
+                  background: '#333',
+                  color: '#fff',
+                  borderLeft: '5px solid #EF4444',
+                },
               },
             }}
           />
