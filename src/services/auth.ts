@@ -1,4 +1,4 @@
-import { api } from './api';
+import api from './api';
 import { LoginDTO, LoginResponse, RegisterStandDTO, RegisterStudentDTO, User } from '@/types/auth';
 
 class AuthService {
@@ -7,7 +7,7 @@ class AuthService {
 
     async login(data: LoginDTO): Promise<LoginResponse> {
         try {
-            const response = await api.post<LoginResponse>('/login', data);
+            const response = await api.post<LoginResponse>('/api/login', data);
             if (response.data.status === 'success' && response.data.data) {
                 localStorage.setItem(this.TOKEN_KEY, response.data.data.token);
                 localStorage.setItem(this.USER_KEY, JSON.stringify(response.data.data.user));
@@ -23,9 +23,11 @@ class AuthService {
 
     async registerStudent(data: RegisterStudentDTO): Promise<LoginResponse> {
         try {
-            const response = await api.post<LoginResponse>('api/register', {
-                ...data,
-                role: 'student'
+            const response = await api.post<LoginResponse>('/api/register', {
+                name: data.name,
+                email: data.email,
+                password: data.password,
+                password_confirmation: data.password_confirmation
             });
             if (response.data.status === 'success' && response.data.data) {
                 localStorage.setItem(this.TOKEN_KEY, response.data.data.token);
@@ -42,9 +44,14 @@ class AuthService {
 
     async registerStand(data: RegisterStandDTO): Promise<LoginResponse> {
         try {
-            const response = await api.post<LoginResponse>('api/register', {
-                ...data,
-                role: 'stand'
+            const response = await api.post<LoginResponse>('/api/register', {
+                name: data.name,
+                email: data.email,
+                password: data.password,
+                password_confirmation: data.password_confirmation,
+                stand_name: data.stand_name,
+                stand_slug: data.stand_slug,
+                stand_description: data.stand_description
             });
             if (response.data.status === 'success' && response.data.data) {
                 localStorage.setItem(this.TOKEN_KEY, response.data.data.token);
@@ -61,24 +68,29 @@ class AuthService {
 
     async logout(): Promise<void> {
         try {
-            await api.post('api/logout');
+            await api.post('/logout');
             this.clearAuth();
-        } catch (error) {
-            if (error instanceof Error) {
-                throw new Error(error.message);
-            }
+        } catch {
+            this.clearAuth();
             throw new Error('Terjadi kesalahan saat logout');
         }
     }
 
     async getUser(): Promise<User | null> {
+        // Coba ambil dari localStorage terlebih dahulu
+        const userFromStorage = this.getUserFromStorage();
+        if (userFromStorage) {
+            return userFromStorage;
+        }
+        
+        // Jika tidak ada di localStorage, baru panggil API
         try {
-            const response = await api.get('/me');
+            const response = await api.get('/api/me');
             if (response.data.status === 'success' && response.data.data) {
                 return response.data.data;
             }
             return null;
-        } catch (error) {
+        } catch {
             return null;
         }
     }
@@ -100,6 +112,10 @@ class AuthService {
     clearAuth(): void {
         localStorage.removeItem(this.TOKEN_KEY);
         localStorage.removeItem(this.USER_KEY);
+    }
+
+    setToken(token: string): void {
+        localStorage.setItem(this.TOKEN_KEY, token);
     }
 
     isAuthenticated(): boolean {

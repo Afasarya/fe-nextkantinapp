@@ -1,3 +1,5 @@
+'use client';
+
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
@@ -39,4 +41,4 @@ const AuthMiddleware = ({ children, requireAuth = false, roles = [] }: AuthMiddl
   return <>{children}</>;
 };
 
-export default AuthMiddleware;
+export default AuthMiddleware; 

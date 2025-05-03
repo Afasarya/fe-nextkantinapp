@@ -14,7 +14,7 @@ import { RegisterStudentDTO, RegisterStandDTO } from '@/types/auth';
 const RegisterPage = () => {
   const router = useRouter();
   const [registerType, setRegisterType] = useState<'student' | 'stand'>('student');
-  const [formData, setFormData] = useState<RegisterStudentDTO | RegisterStandDTO>({
+  const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
@@ -102,21 +102,43 @@ const RegisterPage = () => {
     setIsLoading(true);
 
     try {
-      const response = registerType === 'stand' 
-        ? await authService.registerStand(formData as RegisterStandDTO)
-        : await authService.registerStudent(formData as RegisterStudentDTO);
+      let response;
 
-      authService.setToken(response.token);
-      toast.success('Pendaftaran berhasil!');
-      
-      // Redirect berdasarkan tipe registrasi
       if (registerType === 'stand') {
-        router.push('/stand/dashboard');
+        const standData: RegisterStandDTO = {
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+          password_confirmation: formData.password_confirmation,
+          stand_name: formData.stand_name || '',
+          stand_slug: formData.stand_slug,
+          stand_description: formData.stand_description
+        };
+        response = await authService.registerStand(standData);
       } else {
-        router.push('/');
+        const studentData: RegisterStudentDTO = {
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+          password_confirmation: formData.password_confirmation
+        };
+        response = await authService.registerStudent(studentData);
+      }
+
+      if (response.status === 'success' && response.data) {
+        toast.success('Pendaftaran berhasil!');
+        
+        // Redirect berdasarkan tipe registrasi
+        if (registerType === 'stand') {
+          router.push('/dashboard');
+        } else {
+          router.push('/');
+        }
+      } else {
+        toast.error(response.message || 'Gagal melakukan pendaftaran');
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Gagal melakukan pendaftaran');
+      toast.error(error.message || 'Gagal melakukan pendaftaran');
     } finally {
       setIsLoading(false);
     }

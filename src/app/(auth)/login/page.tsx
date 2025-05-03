@@ -20,21 +20,41 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
+  // Fix: Menambahkan router ke dependency array dan menambahkan flag untuk mencegah multiple check
   useEffect(() => {
+    let isMounted = true;
+    
     const checkAuth = async () => {
-      if (authService.isAuthenticated()) {
-        const user = authService.getUserFromStorage();
-        if (user?.role === 'stand') {
-          router.push('/dashboard');
-        } else if (user?.role === 'student') {
-          router.push('/');
+      try {
+        if (authService.isAuthenticated()) {
+          const user = authService.getUserFromStorage();
+          if (isMounted) {
+            if (user?.role === 'Stand') {
+              router.push('/dashboard');
+            } else if (user?.role === 'Student') {
+              router.push('/');
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error checking authentication:', error);
+      } finally {
+        // Update state hanya jika komponen masih di-mount
+        if (isMounted) {
+          setIsCheckingAuth(false);
         }
       }
     };
     
     checkAuth();
-  }, [router]);
+    
+    // Cleanup function untuk mencegah memory leak dan update state pada unmounted component
+    return () => {
+      isMounted = false;
+    };
+  }, [router]); 
 
   const validateForm = () => {
     const newErrors: { email?: string; password?: string } = {};
@@ -73,9 +93,9 @@ const LoginPage = () => {
         toast.success('Login berhasil!');
 
         // Redirect berdasarkan role
-        if (response.data.user.role === 'stand') {
+        if (response.data.user.role === 'Stand') {
           router.push('/dashboard');
-        } else if (response.data.user.role === 'student') {
+        } else if (response.data.user.role === 'Student') {
           router.push('/');
         }
       } else {
@@ -111,6 +131,15 @@ const LoginPage = () => {
       }));
     }
   };
+
+  // Tampilkan loading jika masih memeriksa autentikasi
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row">

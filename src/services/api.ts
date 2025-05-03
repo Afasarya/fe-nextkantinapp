@@ -2,7 +2,7 @@ import axios from 'axios';
 import { authService } from './auth';
 
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000',
+  baseURL: '',
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json'
@@ -39,8 +39,7 @@ api.interceptors.response.use(
       originalRequest._retry = true;
       
       // Hapus token dan redirect ke login
-      authService.removeToken();
-      localStorage.removeItem('user');
+      authService.clearAuth();
       window.location.href = '/login';
       return Promise.reject(error);
     }
